@@ -37,3 +37,15 @@ vignettes/*.pdf
 
 # R Environment Variables
 .Renviron
+
+# TeX files
+*.aux
+*.log
+*.nav
+*.snm
+*.toc
+*.vrb
+jfssa2022.tex
+
+# Binary files
+*.pdf

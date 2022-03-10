@@ -1,0 +1,69 @@
+---
+title: "NIMBLEによる階層モデルのあてはめ"
+author: "伊東宏樹"
+date: "`r Sys.Date()`"
+output:
+  beamer_presentation:
+    latex_engine: lualatex
+    theme: metropolis
+    keep_tex: true
+    slide_level: 2
+    includes:
+      in_header: header.tex
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(AHMbook)
+library(nimble)
+library(coda)
+library(ggplot2)
+set.seed(123)
+```
+
+# はじめに
+
+階層モデル
+
+NIMBLE
+
+## NIMBLE
+
+https://r-nimble.org
+
+
+# サイト占有モデル
+
+## 模擬データの作成
+
+```{r simOcc, echo = TRUE}
+occ_data <- AHMbook::simOcc(
+  M = 200,
+  J = 3,
+  mean.occupancy = 0.6,
+  beta1 = -2,
+  beta2 = 2,
+  beta3 = 0,
+  mean.detection = 0.3,
+  time.effects = c(0, 0),
+  alpha1 = -1,
+  alpha2 = -3,
+  alpha3 = 0,
+  sd.lp = 0,
+  b = 0,
+  show.plot = FALSE)
+```
+
+## データの確認
+
+真の占有サイト数
+
+```{r num_occ_sites, echo = TRUE}
+sum(occ_data$z)
+```
+
+観察された占有サイト数
+
+```{r view_occ_data, echo = TRUE}
+sum(apply(occ_data$y, 1, max))
+```
