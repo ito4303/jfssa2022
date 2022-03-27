@@ -1,12 +1,29 @@
 %% フォントの設定
 %% https://org-technology.com/posts/lualatex-unicode-math.html
-\setmainfont[Ligatures=TeX]{TeX Gyre Heros}
-\setsansfont[Scale=1.0]{TeX Gyre Heros}
+%\setmainfont[Ligatures=TeX]{TeX Gyre Heros}
+%\setsansfont[Scale=1.0]{TeX Gyre Heros}
 \usepackage{unicode-math}
 \unimathsetup{math-style=ISO,bold-style=ISO}
-\setmathfont[Scale=MatchLowercase]{FiraMath-Regular.otf}
-\setmathrm[Scale=MatchLowercase]{FiraMath-Regular.otf}
+\setmathfont[Scale=1.0]{FiraMath-Regular.otf}
+\setmathrm[Scale=1.0]{FiraMath-Regular.otf}
 
 %% 日本語フォントの設定
-\usepackage[deluxe,haranoaji]{luatexja-preset}
-\renewcommand{\kanjifamilydefault}{\gtdefault}
+%\usepackage[deluxe,haranoaji]{luatexja-preset}
+%\renewcommand{\kanjifamilydefault}{\gtdefault}
+\usepackage{luatexja-fontspec}
+\setmainfont[Scale=0.96,BoldFont={BIZ UDPGothic Bold}]{BIZ UDPGothic}
+\setsansfont[Scale=0.96,BoldFont={BIZ UDPGothic Bold}]{BIZ UDPGothic}
+\setmainjfont[BoldFont={BIZ UDPGothic Bold}]{BIZ UDPGothic}
+\setmonofont{UDEVGothicJPDOC}
+
+%% Font size for R codes
+% https://stackoverflow.com/questions/38323331/code-chunk-font-size-in-beamer-with-knitr-and-latex
+\let\oldShaded\Shaded
+\let\endoldShaded\endShaded
+\renewenvironment{Shaded}{\small\oldShaded}{\endoldShaded}
+
+%% Font size for outputs
+\let\oldverbatim\verbatim
+\let\endoldverbatim\endverbatim
+\renewenvironment{verbatim}{\footnotesize\oldverbatim}{\endoldverbatim}
+

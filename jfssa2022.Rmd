@@ -10,6 +10,7 @@ output:
     slide_level: 2
     includes:
       in_header: header.tex
+classoption: "aspectratio=169"
 ---
 
 ```{r setup, include=FALSE}
@@ -18,39 +19,56 @@ library(AHMbook)
 library(nimble)
 library(coda)
 library(ggplot2)
+library(patchwork)
 set.seed(123)
 ```
 
+## 本日の内容
+
+\tableofcontents
+
 # はじめに
 
-階層モデル
+## 階層モデル
 
-NIMBLE
+- 潜在状態
+- 観測過程
+
 
 ## NIMBLE
 
-https://r-nimble.org
+- https://r-nimble.org
+- BUGSを拡張したモデル記述言語
+- モデルコードをC++に変換後、コンパイルして実行 ⇒ 高速
 
 
 # サイト占有モデル
+
+- 潜在状態: 存在確率$\psi$に応じて在・不在$z$が決定される。
+    - $z \sim \mathrm{Bernoulli}(\psi)$
+- 観測過程: 潜在状態$z$と発見確率$p$に応じて発見・不発見$Y$が決定される。
+    - $Y \sim \mathrm{Bernoulli}(z p)$
+
+偽陽性の誤差（ないものをあるとしてしまう）はないとする。
+
 
 ## 模擬データの作成
 
 ```{r simOcc, echo = TRUE}
 occ_data <- AHMbook::simOcc(
-  M = 200,
-  J = 3,
-  mean.occupancy = 0.6,
-  beta1 = -2,
-  beta2 = 2,
-  beta3 = 0,
-  mean.detection = 0.3,
-  time.effects = c(0, 0),
-  alpha1 = -1,
-  alpha2 = -3,
-  alpha3 = 0,
-  sd.lp = 0,
-  b = 0,
+  M = 200,                # サイト数
+  J = 3,                  # 調査回数
+  mean.occupancy = 0.6,   # 共変量が0のときの平均占有率
+  beta1 = -2,             # 占有率に対する標高の係数
+  beta2 = 2,              # 占有率に対する森林被覆率の係数
+  beta3 = 0,              # 占有率に対する交互作用の係数
+  mean.detection = 0.3,   # 共変量が0のときの平均発見確率
+  time.effects = c(0, 0), # 時間効果
+  alpha1 = -1,            # 占有率に対する標高の係数
+  alpha2 = -3,            # 占有率に対する風速の係数
+  alpha3 = 0,             # 占有率に対する交互作用の係数
+  sd.lp = 0,              # サイトの変量効果
+  b = 0,                  # 行動反応
   show.plot = FALSE)
 ```
 
@@ -59,11 +77,127 @@ occ_data <- AHMbook::simOcc(
 真の占有サイト数
 
 ```{r num_occ_sites, echo = TRUE}
-sum(occ_data$z)
+occ_data$sumZ
 ```
 
 観察された占有サイト数
 
 ```{r view_occ_data, echo = TRUE}
-sum(apply(occ_data$y, 1, max))
+occ_data$sumZ.obs
 ```
+
+---
+
+```{r plot_elev_z}
+data <- data.frame(z = occ_data$z, elev = occ_data$elev, forest = occ_data$forest,
+                   wind = occ_data$wind, psi = occ_data$psi)
+p1 <- ggplot(data) +
+  geom_point(aes(x = elev, y = psi)) +
+  geom_point(aes(x = elev, y = z), shape = 3) +
+  coord_fixed()
+p2 <- ggplot(data) +
+  geom_point(aes(x = forest, y = psi)) +
+  geom_point(aes(x = forest, y = z), shape = 3) +
+  coord_fixed()
+p1 + p2
+```
+
+## モデル
+
+```{r occ_model,echo=TRUE}
+occ_code <- nimbleCode({
+  for (m in 1:M) {
+    logit(psi[m]) <- beta[1] + beta[2] * elev[m] + beta[3] * forest[m]
+    z[m] ~ dbern(psi[m])
+    for (j in 1:J) {
+      logit(p[m, j]) <- beta[4] + beta[5] * elev[m] + beta[6] * wind[m, j]
+      Y[m, j] ~ dbern(z[m] * p[m, j])
+    }
+  }
+  for (i in 1:6) {
+    beta[i] ~ dnorm(0, 1.0e-4)
+  }
+})
+```
+
+
+## NIMBLEによるあてはめ
+
+```{r occ_fit, echo=TRUE, message=FALSE, results='hide'}
+const <- list(M = occ_data$M, J = occ_data$J)
+data <- list(Y = occ_data$y, elev = occ_data$elev,
+             forest = occ_data$forest, wind = occ_data$wind)
+init <- function() {
+  list(beta = runif(6, -2, 2), z = apply(occ_data$y, 1, max))
+}
+occ_fit <- nimbleMCMC(occ_code, constants = const, data = data, inits = init,
+                      monitors = c("beta"),
+                      niter = 2000, nburnin = 1000, nchain = 3,
+                      summary = TRUE)
+```
+
+## 結果
+
+```{r occ_summary, echo=TRUE, comment="", prompt=TRUE}
+occ_fit$summary$all.chains
+```
+
+
+# N混合モデル
+
+- 潜在状態: 真の個体数$N$
+    - $N \sim \mathrm{Poisson}(\lambda)$
+- 観測過程: 発見確率$p$に応じて$Y$個体を発見
+    - $Y \sim \mathrm{Binomial}(N, p)$
+
+偽陽性の誤差はないとする。
+
+## 模擬データ
+
+```{r simNmix, echo = TRUE}
+nmix_data <- AHMbook::simNmix(
+  nsites = 267,
+  nvisits = 3,
+  mean.lam = 2,
+  mean.p = 0.6,
+  show.plots = FALSE, verbose = FALSE)
+```
+
+
+## モデル
+
+```{r nmix_model, echo=TRUE}
+nmix_code <- nimbleCode({
+  for (m in 1:M) {
+    log(lambda[m]) <- beta[1]
+    N[m] ~ dpois(lambda[m])
+    for (j in 1:J) {
+      logit(p[m, j]) <- beta[2]
+      Y[m, j] ~ dbinom(size = N[m], prob = p[m, j])
+    }
+  }
+  for (i in 1:2) {
+    beta[i] ~ dnorm(0, 1.0e-4)
+  }
+})
+
+```
+
+
+## NIMBLEによるあてはめ
+
+```{r nmix_fit}
+
+```
+
+## 結果
+
+```{r nmix_results}
+
+```
+
+
+# おわりに
+
+- 潜在状態と観測過程を明示的にモデリングする。
+
