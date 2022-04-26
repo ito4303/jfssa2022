@@ -76,29 +76,31 @@ occ_data <- AHMbook::simOcc(
 
 真の占有サイト数
 
-```{r num_occ_sites, echo = TRUE}
+```{r num_occ_sites, echo = TRUE, prompt=TRUE, comment=""}
 occ_data$sumZ
 ```
 
 観察された占有サイト数
 
-```{r view_occ_data, echo = TRUE}
+```{r view_occ_data, echo = TRUE, prompt=TRUE, comment=""}
 occ_data$sumZ.obs
 ```
 
 ---
 
 ```{r plot_elev_z}
-data <- data.frame(z = occ_data$z, elev = occ_data$elev, forest = occ_data$forest,
-                   wind = occ_data$wind, psi = occ_data$psi)
-p1 <- ggplot(data) +
+df <- data.frame(z = occ_data$z, elev = occ_data$elev, forest = occ_data$forest,
+                 wind = occ_data$wind, psi = occ_data$psi)
+p1 <- ggplot(df) +
   geom_point(aes(x = elev, y = psi)) +
   geom_point(aes(x = elev, y = z), shape = 3) +
-  coord_fixed()
-p2 <- ggplot(data) +
+  coord_fixed(ratio = 2) +
+  theme_grey(base_family = "Helvetica", base_size = 14)
+p2 <- ggplot(df) +
   geom_point(aes(x = forest, y = psi)) +
   geom_point(aes(x = forest, y = z), shape = 3) +
-  coord_fixed()
+  coord_fixed(ratio = 2) +
+  theme_grey(base_family = "Helvetica", base_size = 14)
 p1 + p2
 ```
 
@@ -123,7 +125,7 @@ occ_code <- nimbleCode({
 
 ## NIMBLEによるあてはめ
 
-```{r occ_fit, echo=TRUE, message=FALSE, results='hide'}
+```{r occ_fit, cache=TRUE, echo=TRUE, message=FALSE, results='hide'}
 const <- list(M = occ_data$M, J = occ_data$J)
 data <- list(Y = occ_data$y, elev = occ_data$elev,
              forest = occ_data$forest, wind = occ_data$wind)
@@ -147,7 +149,7 @@ occ_fit$summary$all.chains
 
 - 潜在状態: 真の個体数$N$
     - $N \sim \mathrm{Poisson}(\lambda)$
-- 観測過程: 発見確率$p$に応じて$Y$個体を発見
+- 観測過程: そのうち$Y$個体を発見する。
     - $Y \sim \mathrm{Binomial}(N, p)$
 
 偽陽性の誤差はないとする。
@@ -156,10 +158,12 @@ occ_fit$summary$all.chains
 
 ```{r simNmix, echo = TRUE}
 nmix_data <- AHMbook::simNmix(
-  nsites = 267,
-  nvisits = 3,
-  mean.lam = 2,
-  mean.p = 0.6,
+  nsites = 267,        # サイト数
+  nvisits = 3,         # 各サイトでの観察回数
+  mean.lam = 2,        # 平均個体数
+  mean.p = 0.6,        # 平均発見確率
+  beta2.lam = 1,       # 個体数についての共変量2の係数
+  beta.p.survey = -2,  # 発見確率についての観測共変量の係数
   show.plots = FALSE, verbose = FALSE)
 ```
 
@@ -169,14 +173,14 @@ nmix_data <- AHMbook::simNmix(
 ```{r nmix_model, echo=TRUE}
 nmix_code <- nimbleCode({
   for (m in 1:M) {
-    log(lambda[m]) <- beta[1]
+    log(lambda[m]) <- beta[1] + beta[2] * Xsite[m]
     N[m] ~ dpois(lambda[m])
     for (j in 1:J) {
-      logit(p[m, j]) <- beta[2]
+      logit(p[m, j]) <- beta[3] + beta[4] * Xsurvey[m, j]
       Y[m, j] ~ dbinom(size = N[m], prob = p[m, j])
     }
   }
-  for (i in 1:2) {
+  for (i in 1:4) {
     beta[i] ~ dnorm(0, 1.0e-4)
   }
 })
@@ -186,14 +190,43 @@ nmix_code <- nimbleCode({
 
 ## NIMBLEによるあてはめ
 
-```{r nmix_fit}
-
+```{r nmix_fit, cache=TRUE, echo=TRUE, message=FALSE, results='hide'}
+M <- nmix_data$nsites
+J <- nmix_data$nvisits
+const <- list(M = M, J = J)
+data <- list(Y = nmix_data$C, Xsite = nmix_data$site.cov[, 2],
+             Xsurvey = nmix_data$survey.cov)
+init <- function() {
+  list(beta = runif(4, -2, 2), N = apply(nmix_data$C, 1, max))
+}
+nmix_fit <- nimbleMCMC(nmix_code, constants = const, data = data, inits = init,
+                       monitors = c("beta", "N"),
+                       niter = 2000, nburnin = 1000, nchain = 3,
+                       summary = TRUE)
 ```
 
 ## 結果
 
-```{r nmix_results}
+```{r nmix_results, echo=TRUE, prompt=TRUE}
+nmix_fit$summary$all.chains[(M + 1):(M + 4), ]
+```
 
+---
+
+```{r nmix_plot_N, fig.width=9, fig.height=4.5}
+df <- data.frame(Site = rep(1:M, 2),
+                 N = c(nmix_data$N, nmix_fit$summary$all.chains[1:M, 1]),
+                 Value = rep(c("True", "Estimated"), each = M))
+ggplot(df) +
+  geom_segment(data = data.frame(Site = 1:nmix_data$nsite,
+                                 CI_low = nmix_fit$summary$all.chains[1:M, 4],
+                                 CI_upp = nmix_fit$summary$all.chains[1:M, 5]),
+               aes(x = Site, xend = Site, y = CI_low, yend = CI_upp),
+               colour = "red", alpha = 0.7) +          
+  geom_point(aes(x = Site, y = N, colour = Value),
+             size = 3, alpha = 0.7) +
+  labs(x = "Site", y = "N") +
+  theme_grey(base_family = "Helvetica", base_size = 12)
 ```
 
 
