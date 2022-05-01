@@ -1,0 +1,13 @@
+model {
+  for (m in 1:M) {
+    logit(psi[m]) <- beta[1] + beta[2] * elev[m] + beta[3] * forest[m]
+    z[m] ~ dbern(psi[m])
+    for (j in 1:J) {
+      logit(p[m, j]) <- beta[4] + beta[5] * elev[m] + beta[6] * wind[m, j]
+      Y[m, j] ~ dbern(z[m] * p[m, j])
+    }
+  }
+  for (i in 1:6) {
+    beta[i] ~ dnorm(0, 1.0e-4)
+  }
+}

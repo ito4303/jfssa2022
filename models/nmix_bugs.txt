@@ -1,0 +1,14 @@
+model {
+  for (m in 1:M) {
+    log(lambda[m]) <- beta[1] + beta[2] * Xsite[m]
+    N[m] ~ dpois(lambda[m])
+    for (j in 1:J) {
+      logit(p[m, j]) <- beta[3] + beta[4] * Xsurvey[m, j]
+      Y[m, j] ~ dbin(p[m, j], N[m])
+    }
+  }
+  for (i in 1:4) {
+    beta[i] ~ dnorm(0, 1.0e-4)
+  }
+  Ntotal = sum(N)
+}
