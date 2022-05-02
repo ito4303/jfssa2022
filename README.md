@@ -1,2 +1,4 @@
-# jfssa2022
-Files for the tutorial session in JFSSA 2022
+# 階層モデルあてはめの実例
+
+2022年度統計関連学会連合大会
+チュートリアルセッション「生態学における階層モデルの応用」
