@@ -43,19 +43,19 @@ set.seed(123)
 - NIMBLE
 - Stan
 
-### JAGS
+## JAGS
 
 - https://mcmc-jags.sourceforge.io/
 - BUGS言語
 
 
-### NIMBLE
+## NIMBLE
 
 - https://r-nimble.org
 - BUGSを拡張したモデル記述言語
 - モデルコードをC++に変換後、コンパイルして実行
 
-### Stan
+## Stan
 
 - https://mc-stan.org/
 - Stan独自のプログラミング言語
@@ -130,29 +130,28 @@ p1 + p2
 ```{r occ_model,echo=TRUE}
 occ_bugs <- file.path("models", "occ_bug.txt")
 readLines(occ_bugs)
-
 ```
 
 
 ## JAGSによるあてはめ
 
-```{r occ_bugs}
-occ_jags_model <- jags.model(occ_bugs,
-                             data = list(M = occ_data$M, J = occ_data$J,
-                                         Y = occ_data$y, elev = occ_data$elev,
-                                         forest = occ_data$forest, wind = occ_data$wind),
-                             inits = list(z = apply(occ_data$y, 1, max)),
-                             n.chains = 3, n.adapt = 1000)
-update(occ_jags_model, n.iter = 1000)
-occ_jags_fit <- coda.samples(occ_jags_model,
-                             variable.names = "beta",
-                             n.iter = 1000)
+```{r occ_bugs, cache=TRUE}
+model <- jags.model(occ_bugs,
+                    data = list(M = occ_data$M, J = occ_data$J,
+                                Y = occ_data$y, elev = occ_data$elev,
+                                forest = occ_data$forest,
+                                wind = occ_data$wind),
+                    inits = list(z = apply(occ_data$y, 1, max)),
+                    n.chains = 3, n.adapt = 1000)
+update(model, n.iter = 1000)
+fit <- coda.samples(model, variable.names = "beta",
+                    n.iter = 1000)
 ```
 
 ## 結果
 
-```{r occ_jags_summary, echo = TRUE}
-summary(occ_jags_fit)
+```{r occ_jags_summary, echo=11:17}
+summary(fit)
 ```
 
 
@@ -164,39 +163,39 @@ data <- list(M = occ_data$M, J = occ_data$J,
              forest = occ_data$forest, wind = occ_data$wind)
 init <- list(beta = runif(6, -2, 2), z = apply(occ_data$y, 1, max))
 model <- readBUGSmodel(occ_bugs, data = data, inits = init)
-occ_nimble_fit <- nimbleMCMC(model = model, monitors = "beta",
-                             niter = 2000, nburnin = 1000, nchain = 3,
-                             summary = TRUE)
+fit <- nimbleMCMC(model = model, monitors = "beta",
+                  niter = 2000, nburnin = 1000, nchain = 3,
+                  summary = TRUE)
 ```
 
 ## 結果
 
 ```{r occ_summary, echo=TRUE, comment="", prompt=TRUE}
-occ_nimble_fit$summary$all.chains
+fit$summary$all.chains
 ```
 
 ## Stanによるあてはめ
 
-CmdStanR
-
-```{r occ_stan, cache=TRUE}
-occ_stan_model <- cmdstan_model(file.path("models", "occ.stan"))
-occ_stan_fit <- occ_stan_model$sample(data = list(M = occ_data$M, J = occ_data$J,
-                                                  Y = occ_data$y, Elev = occ_data$elev,
-                                                  Forest = occ_data$forest,
-                                                  Wind = occ_data$wind),
-                                      seed = 1,
-                                      chains = 4, parallel_chains = 4,
-                                      iter_sampling = 1000, iter_warmup = 1000)
+```{r occ_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
+model <- cmdstan_model(file.path("models", "occ.stan"))
+fit <- model$sample(data = list(M = occ_data$M,
+                                J = occ_data$J,
+                                Y = occ_data$y,
+                                Elev = occ_data$elev,
+                                Forest = occ_data$forest,
+                                Wind = occ_data$wind),
+                    seed = 1,
+                    chains = 4, parallel_chains = 4,
+                    iter_sampling = 1000,
+                    iter_warmup = 1000,
+                    output_dir = "output_dir")
 ```
 
-Results
+## Results
 
-```{r}
-occ_stan_fit$summary("beta")
+```{r occ_stan_summary, echo=TRUE}
+fit$summary("beta")
 ```
-
-
 
 
 # N混合モデル
@@ -224,38 +223,36 @@ nmix_data <- AHMbook::simNmix(
 ## JAGS
 
 BUGS
-```{r occ_model,echo=TRUE}
+```{r nmix_bugs_model, echo=TRUE, cache=TRUE}
 nmix_bugs <- file.path("models", "nmix_bugs.txt")
 readLines(nmix_bugs)
-
 ```
 
 ## Fit
 
-```{r occ_bugs}
-nmix_jags_model <- jags.model(nmix_bugs,
-                              data = list(M = nmix_data$nsites,
-                                          J = nmix_data$nvisits,
-                                          Y = nmix_data$C,
-                                          Xsite = nmix_data$site.cov[, 2],
-                                          Xsurvey = nmix_data$survey.cov),
-                             inits = list(N = apply(nmix_data$C, 1, max)),
-                             n.chains = 3, n.adapt = 1000)
-update(nmix_jags_model, n.iter = 1000)
-nmix_jags_fit <- coda.samples(nmix_jags_model,
-                             variable.names = c("beta", "Ntotal"),
-                             n.iter = 1000)
+```{r nmix_jags_model}
+model <- jags.model(nmix_bugs,
+                    data = list(M = nmix_data$nsites,
+                                J = nmix_data$nvisits,
+                                Y = nmix_data$C,
+                                Xsite = nmix_data$site.cov[, 2],
+                                Xsurvey = nmix_data$survey.cov),
+                    inits = list(N = apply(nmix_data$C, 1, max)),
+                    n.chains = 3, n.adapt = 1000)
+update(model, n.iter = 1000)
+fit <- coda.samples(model, variable.names = c("beta", "Ntotal"),
+                    n.iter = 1000)
 ```
 
 ## 結果
 
-```{r occ_jags_summary, echo = TRUE}
-summary(nmix_jags_fit)
+```{r nmix_jags_summary, echo = TRUE}
+summary(fit)
 ```
 ## NIMBLEモデル
 
-```{r nmix_model, echo=TRUE}
-nmix_code <- nimbleCode({
+```{r nmix_nimble, echo=TRUE}
+code <- nimbleCode({
   for (m in 1:M) {
     log(lambda[m]) <- beta[1] + beta[2] * Xsite[m]
     N[m] ~ dpois(lambda[m])
@@ -283,28 +280,28 @@ data <- list(Y = nmix_data$C, Xsite = nmix_data$site.cov[, 2],
 init <- function() {
   list(beta = runif(4, -2, 2), N = apply(nmix_data$C, 1, max))
 }
-nmix_fit <- nimbleMCMC(nmix_code, constants = const, data = data, inits = init,
-                       monitors = c("beta", "N", "Ntotal"),
-                       niter = 2000, nburnin = 1000, nchain = 3,
-                       summary = TRUE)
+fit <- nimbleMCMC(code, constants = const, data = data, inits = init,
+                  monitors = c("beta", "N", "Ntotal"),
+                  niter = 2000, nburnin = 1000, nchain = 3,
+                  summary = TRUE)
 ```
 
 ## 結果
 
 ```{r nmix_results, echo=TRUE, prompt=TRUE}
-nmix_fit$summary$all.chains[(M + 1):(M + 5), ]
+fit$summary$all.chains[(M + 1):(M + 5), ]
 ```
 
 ---
 
 ```{r nmix_plot_N, fig.width=9, fig.height=4.5}
 df <- data.frame(Site = rep(1:M, 2),
-                 N = c(nmix_data$N, nmix_fit$summary$all.chains[1:M, 1]),
+                 N = c(nmix_data$N, fit$summary$all.chains[1:M, 1]),
                  Value = rep(c("True", "Estimated"), each = M))
 ggplot(df) +
   geom_segment(data = data.frame(Site = 1:nmix_data$nsite,
-                                 CI_low = nmix_fit$summary$all.chains[1:M, 4],
-                                 CI_upp = nmix_fit$summary$all.chains[1:M, 5]),
+                                 CI_low = fit$summary$all.chains[1:M, 4],
+                                 CI_upp = fit$summary$all.chains[1:M, 5]),
                aes(x = Site, xend = Site, y = CI_low, yend = CI_upp),
                colour = "red", alpha = 0.7) +          
   geom_point(aes(x = Site, y = N, colour = Value),
@@ -315,24 +312,23 @@ ggplot(df) +
 
 ## Stanによるあてはめ
 
-CmdStanR
-
-```{r occ_stan, cache=TRUE}
-nmix_stan_model <- cmdstan_model(file.path("models", "nmix.stan"))
-nmix_stan_fit <- nmix_stan_model$sample(data = list(M = nmix_data$nsites,
-                                                    J = nmix_data$nvisits,
-                                                    Y = nmix_data$C, K = 100,
-                                                    Xsite = nmix_data$site.cov[, 2],
-                                                    Xsurvey = nmix_data$survey.cov),
-                                      seed = 1,
-                                      chains = 4, parallel_chains = 4,
-                                      iter_sampling = 1000, iter_warmup = 1000)
+```{r nmix_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
+model <- cmdstan_model(file.path("models", "nmix.stan"))
+fit <- model$sample(data = list(M = nmix_data$nsites,
+                                J = nmix_data$nvisits,
+                                Y = nmix_data$C, K = 100,
+                                Xsite = nmix_data$site.cov[, 2],
+                                Xsurvey = nmix_data$survey.cov),
+                    seed = 1,
+                    chains = 4, parallel_chains = 4,
+                    iter_sampling = 1000, iter_warmup = 1000,
+                    output_dir = "output_dir")
 ```
 
-Results
+## Results
 
 ```{r nmix_stan_results, echo=TRUE}
-nmix_stan_fit$summary(c("Ntotal", "beta"))
+fit$summary(c("Ntotal", "beta"))
 ```
 
 

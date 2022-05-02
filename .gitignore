@@ -49,3 +49,9 @@ jfssa2022.tex
 
 # Binary files
 *.pdf
+models/occ
+models/nmix
+
+# Stan output dir
+output_dir
+
