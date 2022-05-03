@@ -22,7 +22,7 @@ library(cmdstanr)
 library(coda)
 library(ggplot2)
 library(patchwork)
-set.seed(123)
+set.seed(20220904)
 ```
 
 ## 本日の内容
@@ -144,7 +144,7 @@ model <- jags.model(occ_bugs,
                     inits = list(z = apply(occ_data$y, 1, max)),
                     n.chains = 3, n.adapt = 1000)
 update(model, n.iter = 1000)
-fit1 <- coda.samples(model, variable.names = "beta",
+fit1 <- coda.samples(model, variable = c("beta", "Nocc"),
                      n.iter = 1000)
 ```
 
@@ -163,7 +163,7 @@ data <- list(M = occ_data$M, J = occ_data$J,
              forest = occ_data$forest, wind = occ_data$wind)
 init <- list(beta = runif(6, -2, 2), z = apply(occ_data$y, 1, max))
 model <- readBUGSmodel(occ_bugs, data = data, inits = init)
-fit2 <- nimbleMCMC(model = model, monitors = "beta",
+fit2 <- nimbleMCMC(model = model, monitors = c("beta", "Nocc"),
                    niter = 2000, nburnin = 1000, nchain = 3,
                    summary = TRUE)
 ```
@@ -178,15 +178,26 @@ fit2$summary$all.chains
 
 ```{r occ_stan_model}
 occ_stan_model <- readLines(file.path("models", "occ.stan"))
-cat(occ_stan_model[1:12], sep = '\n')
+cat(occ_stan_model[1:14], sep = '\n')
 ```
 
 ---
 
 ```{r occ_stan_model2}
-cat(occ_stan_model[14:24], sep = '\n')
+cat(occ_stan_model[16:27], sep = '\n')
 ```
 
+---
+
+```{r occ_stan_model3}
+cat(occ_stan_model[29:38], sep = '\n')
+```
+
+---
+
+```{r occ_stan_model4}
+cat(occ_stan_model[40:52], sep = '\n')
+```
 
 ## Stanによるあてはめ
 
@@ -207,8 +218,8 @@ fit3 <- model$sample(data = list(M = occ_data$M,
 
 ## Results
 
-```{r occ_stan_summary, echo=TRUE}
-fit3$summary("beta")
+```{r occ_stan_summary}
+fit3$summary(c("beta", "Nocc"))
 ```
 
 
@@ -341,19 +352,19 @@ cat(nmix_stan_model[10:12], sep = '\n')
 ---
 
 ```{r nmix_stan_model3}
-cat(nmix_stan_model[14:27], sep = '\n')
+cat(nmix_stan_model[14:26], sep = '\n')
 ```
 
 ---
 
 ```{r nmix_stan_model4}
-cat(nmix_stan_model[29:32], sep = '\n')
+cat(nmix_stan_model[28:31], sep = '\n')
 ```
 
 ---
 
 ```{r nmix_stan_model5}
-cat(nmix_stan_model[34:41], sep = '\n')
+cat(nmix_stan_model[33:40], sep = '\n')
 ```
 
 ## Stanによるあてはめ

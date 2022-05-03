@@ -10,4 +10,5 @@ model {
   for (i in 1:6) {
     beta[i] ~ dnorm(0, 1.0e-4)
   }
+  Nocc <- sum(z[])
 }
