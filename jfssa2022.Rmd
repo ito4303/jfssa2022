@@ -1,0 +1,395 @@
+---
+title: "階層モデルあてはめの実例"
+author: "伊東宏樹"
+date: "2022-09-04"
+output:
+  beamer_presentation:
+    latex_engine: lualatex
+    theme: metropolis
+    keep_tex: true
+    slide_level: 2
+    includes:
+      in_header: header.tex
+classoption: "aspectratio=169"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+library(AHMbook)
+library(rjags)
+library(nimble)
+library(cmdstanr)
+library(coda)
+library(ggplot2)
+library(patchwork)
+set.seed(20220904)
+```
+
+## 本日の内容
+
+\tableofcontents
+
+# はじめに
+
+## 階層モデル
+
+- 潜在状態
+- 観測過程
+
+
+## 統計ソフトウェアによるあてはめ
+
+- JAGS
+- NIMBLE
+- Stan
+
+## JAGS
+
+- https://mcmc-jags.sourceforge.io/
+- BUGS言語
+
+
+## NIMBLE
+
+- https://r-nimble.org
+- BUGSを拡張したモデル記述言語
+- モデルコードをC++に変換後、コンパイルして実行
+
+## Stan
+
+- https://mc-stan.org/
+- Stan独自のプログラミング言語
+- モデルコードをC++に変換後、コンパイルして実行
+- 離散パラメータの推定はできない
+
+
+# サイト占有モデル
+
+- 潜在状態: 存在確率$\psi$に応じて在・不在$z$が決定される。
+    - $z \sim \mathrm{Bernoulli}(\psi)$
+- 観測過程: 潜在状態$z$と発見確率$p$に応じて発見・不発見$Y$が決定される。
+    - $Y \sim \mathrm{Bernoulli}(z p)$
+
+偽陽性の誤差（ないものをあるとしてしまう）はないとする。
+
+
+## 模擬データの作成
+
+```{r simOcc, echo = TRUE}
+occ_data <- AHMbook::simOcc(
+  M = 200,                # サイト数
+  J = 3,                  # 調査回数
+  mean.occupancy = 0.6,   # 共変量が0のときの平均占有率
+  beta1 = -2,             # 占有率に対する標高の係数
+  beta2 = 2,              # 占有率に対する森林被覆率の係数
+  beta3 = 0,              # 占有率に対する交互作用の係数
+  mean.detection = 0.3,   # 共変量が0のときの平均発見確率
+  time.effects = c(0, 0), # 時間効果
+  alpha1 = -1,            # 占有率に対する標高の係数
+  alpha2 = -3,            # 占有率に対する風速の係数
+  alpha3 = 0,             # 占有率に対する交互作用の係数
+  sd.lp = 0,              # サイトの変量効果
+  b = 0,                  # 行動反応
+  show.plot = FALSE)
+```
+
+## データの確認
+
+真の占有サイト数
+
+```{r num_occ_sites, echo = TRUE, prompt=TRUE, comment=""}
+occ_data$sumZ
+```
+
+観察された占有サイト数
+
+```{r view_occ_data, echo = TRUE, prompt=TRUE, comment=""}
+occ_data$sumZ.obs
+```
+
+---
+
+```{r plot_elev_z}
+df <- data.frame(z = occ_data$z, elev = occ_data$elev, forest = occ_data$forest,
+                 wind = occ_data$wind, psi = occ_data$psi)
+p1 <- ggplot(df) +
+  geom_point(aes(x = elev, y = psi)) +
+  geom_point(aes(x = elev, y = z), shape = 3) +
+  coord_fixed(ratio = 2) +
+  theme_grey(base_family = "Helvetica", base_size = 14)
+p2 <- ggplot(df) +
+  geom_point(aes(x = forest, y = psi)) +
+  geom_point(aes(x = forest, y = z), shape = 3) +
+  coord_fixed(ratio = 2) +
+  theme_grey(base_family = "Helvetica", base_size = 14)
+p1 + p2
+```
+
+## BUGSモデル
+
+```{r occ_model}
+occ_bugs <- file.path("models", "occ_bug.txt")
+occ_bugs_model <- readLines(occ_bugs)
+cat(occ_bugs_model, sep = '\n')
+```
+
+## JAGSによるあてはめ
+
+```{r occ_bugs, echo=TRUE, cache=TRUE, results='hide'}
+model <- jags.model(occ_bugs,
+                    data = list(M = occ_data$M, J = occ_data$J,
+                                Y = occ_data$y, elev = occ_data$elev,
+                                forest = occ_data$forest,
+                                wind = occ_data$wind),
+                    inits = list(z = apply(occ_data$y, 1, max)),
+                    n.chains = 3, n.adapt = 1000)
+update(model, n.iter = 1000)
+fit1 <- coda.samples(model, variable = c("beta", "Nocc"),
+                     n.iter = 1000)
+```
+
+## 結果
+
+```{r occ_jags_summary}
+summary(fit1)$statistics
+```
+
+
+## NIMBLEによるあてはめ
+
+```{r occ_fit, cache=TRUE, echo=TRUE, message=FALSE, results='hide'}
+data <- list(M = occ_data$M, J = occ_data$J,
+             Y = occ_data$y, elev = occ_data$elev,
+             forest = occ_data$forest, wind = occ_data$wind)
+init <- list(beta = runif(6, -2, 2), z = apply(occ_data$y, 1, max))
+model <- readBUGSmodel(occ_bugs, data = data, inits = init)
+fit2 <- nimbleMCMC(model = model, monitors = c("beta", "Nocc"),
+                   niter = 2000, nburnin = 1000, nchain = 3,
+                   summary = TRUE)
+```
+
+## 結果
+
+```{r occ_summary, echo=TRUE, comment="", prompt=TRUE}
+fit2$summary$all.chains
+```
+
+## Stan model
+
+```{r occ_stan_model}
+occ_stan_model <- readLines(file.path("models", "occ.stan"))
+cat(occ_stan_model[1:14], sep = '\n')
+```
+
+---
+
+```{r occ_stan_model2}
+cat(occ_stan_model[16:27], sep = '\n')
+```
+
+---
+
+```{r occ_stan_model3}
+cat(occ_stan_model[29:38], sep = '\n')
+```
+
+---
+
+```{r occ_stan_model4}
+cat(occ_stan_model[40:52], sep = '\n')
+```
+
+## Stanによるあてはめ
+
+```{r occ_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
+model <- cmdstan_model(file.path("models", "occ.stan"))
+fit3 <- model$sample(data = list(M = occ_data$M,
+                                 J = occ_data$J,
+                                 Y = occ_data$y,
+                                 Elev = occ_data$elev,
+                                 Forest = occ_data$forest,
+                                 Wind = occ_data$wind),
+                     seed = 1,
+                     chains = 4, parallel_chains = 4,
+                     iter_sampling = 1000,
+                     iter_warmup = 1000,
+                     output_dir = "output_dir")
+```
+
+## Results
+
+```{r occ_stan_summary}
+fit3$summary(c("beta", "Nocc"))
+```
+
+
+# N混合モデル
+
+- 潜在状態: 真の個体数$N$
+    - $N \sim \mathrm{Poisson}(\lambda)$
+- 観測過程: そのうち$Y$個体を発見する。
+    - $Y \sim \mathrm{Binomial}(N, p)$
+
+偽陽性の誤差はないとする。
+
+## 模擬データ
+
+```{r simNmix, echo = TRUE}
+nmix_data <- AHMbook::simNmix(
+  nsites = 267,        # サイト数
+  nvisits = 3,         # 各サイトでの観察回数
+  mean.lam = 2,        # 平均個体数
+  mean.p = 0.6,        # 平均発見確率
+  beta2.lam = 1,       # 個体数についての共変量2の係数
+  beta.p.survey = -2,  # 発見確率についての観測共変量の係数
+  show.plots = FALSE, verbose = FALSE)
+```
+
+## JAGS
+
+BUGS
+```{r nmix_bugs_model}
+nmix_bugs <- file.path("models", "nmix_bugs.txt")
+cat(readLines(nmix_bugs), sep = "\n")
+```
+
+## Fit
+
+```{r nmix_jags_model, echo=TRUE, cache=TRUE, results='hide'}
+model <- jags.model(nmix_bugs,
+                    data = list(M = nmix_data$nsites,
+                                J = nmix_data$nvisits,
+                                Y = nmix_data$C,
+                                Xsite = nmix_data$site.cov[, 2],
+                                Xsurvey = nmix_data$survey.cov),
+                    inits = list(N = apply(nmix_data$C, 1, max)),
+                    n.chains = 3, n.adapt = 1000)
+update(model, n.iter = 1000)
+fit4 <- coda.samples(model, variable.names = c("beta", "Ntotal"),
+                     n.iter = 1000)
+```
+
+## 結果
+
+```{r nmix_jags_summary, echo = TRUE}
+summary(fit4)$statistics
+```
+
+## NIMBLEモデル
+
+```{r nmix_nimble, echo=TRUE}
+code <- nimbleCode({
+  for (m in 1:M) {
+    log(lambda[m]) <- beta[1] + beta[2] * Xsite[m]
+    N[m] ~ dpois(lambda[m])
+    for (j in 1:J) {
+      logit(p[m, j]) <- beta[3] + beta[4] * Xsurvey[m, j]
+      Y[m, j] ~ dbinom(size = N[m], prob = p[m, j])
+    }
+  }
+  for (i in 1:4) {
+    beta[i] ~ dnorm(mean = 0, sd = 1.0e+2)
+  }
+  Ntotal <- sum(N[])
+})
+
+```
+
+## NIMBLEによるあてはめ
+
+```{r nmix_fit, cache=TRUE, echo=TRUE, message=FALSE, results='hide'}
+M <- nmix_data$nsites
+J <- nmix_data$nvisits
+const <- list(M = M, J = J)
+data <- list(Y = nmix_data$C, Xsite = nmix_data$site.cov[, 2],
+             Xsurvey = nmix_data$survey.cov)
+init <- function() {
+  list(beta = runif(4, -2, 2), N = apply(nmix_data$C, 1, max))
+}
+fit5 <- nimbleMCMC(code, constants = const, data = data, inits = init,
+                   monitors = c("beta", "N", "Ntotal"),
+                   niter = 2000, nburnin = 1000, nchain = 3,
+                   summary = TRUE)
+```
+
+## 結果
+
+```{r nmix_results}
+fit5$summary$all.chains[(M + 1):(M + 5), ]
+```
+
+---
+
+```{r nmix_plot_N, fig.width=9, fig.height=4.5}
+df <- data.frame(Site = rep(1:M, 2),
+                 N = c(nmix_data$N, fit5$summary$all.chains[1:M, 1]),
+                 Value = rep(c("True", "Estimated"), each = M))
+ggplot(df) +
+  geom_segment(data = data.frame(Site = 1:nmix_data$nsite,
+                                 CI_low = fit5$summary$all.chains[1:M, 4],
+                                 CI_upp = fit5$summary$all.chains[1:M, 5]),
+               aes(x = Site, xend = Site, y = CI_low, yend = CI_upp),
+               colour = "red", alpha = 0.7) +          
+  geom_point(aes(x = Site, y = N, colour = Value),
+             size = 3, alpha = 0.7) +
+  labs(x = "Site", y = "N") +
+  theme_grey(base_family = "Helvetica", base_size = 12)
+```
+
+## Stan model
+
+```{r nmix_stan_model}
+nmix_stan_model <- readLines(file.path("models", "nmix.stan"))
+cat(nmix_stan_model[1:8], sep = '\n')
+```
+
+---
+
+```{r nmix_stan_model2}
+cat(nmix_stan_model[10:12], sep = '\n')
+```
+
+---
+
+```{r nmix_stan_model3}
+cat(nmix_stan_model[14:26], sep = '\n')
+```
+
+---
+
+```{r nmix_stan_model4}
+cat(nmix_stan_model[28:31], sep = '\n')
+```
+
+---
+
+```{r nmix_stan_model5}
+cat(nmix_stan_model[33:40], sep = '\n')
+```
+
+## Stanによるあてはめ
+
+```{r nmix_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
+model <- cmdstan_model(file.path("models", "nmix.stan"))
+fit6 <- model$sample(data = list(M = nmix_data$nsites,
+                                 J = nmix_data$nvisits,
+                                 Y = nmix_data$C,
+                                 K = 100 + max(nmix_data$C),
+                                 Xsite = nmix_data$site.cov[, 2],
+                                 Xsurvey = nmix_data$survey.cov),
+                     seed = 1, chains = 4, parallel_chains = 4,
+                     iter_sampling = 1000, iter_warmup = 1000,
+                     output_dir = "output_dir")
+```
+
+## Results
+
+```{r nmix_stan_results}
+fit6$summary(c("Ntotal", "beta"))
+```
+
+
+# おわりに
+
+- 潜在状態と観測過程を明示的にモデリングする。
+
