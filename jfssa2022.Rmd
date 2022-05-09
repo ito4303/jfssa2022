@@ -23,6 +23,9 @@ library(coda)
 library(ggplot2)
 library(patchwork)
 set.seed(20220904)
+output_dir <- "output_dir"
+if (!dir.exists(output_dir))
+  dir.create(output_dir)
 ```
 
 ## 本日の内容
@@ -178,45 +181,50 @@ fit2$summary$all.chains
 
 ```{r occ_stan_model}
 occ_stan_model <- readLines(file.path("models", "occ.stan"))
-cat(occ_stan_model[1:14], sep = '\n')
+cat(occ_stan_model[1:8], sep = '\n')
 ```
 
 ---
 
 ```{r occ_stan_model2}
-cat(occ_stan_model[16:27], sep = '\n')
+cat(occ_stan_model[10:20], sep = '\n')
 ```
 
 ---
 
 ```{r occ_stan_model3}
-cat(occ_stan_model[29:38], sep = '\n')
+cat(occ_stan_model[22:32], sep = '\n')
 ```
 
 ---
 
 ```{r occ_stan_model4}
-cat(occ_stan_model[40:52], sep = '\n')
+cat(occ_stan_model[34:47], sep = '\n')
 ```
 
 ## Stanによるあてはめ
 
 ```{r occ_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
-model <- cmdstan_model(file.path("models", "occ.stan"))
-fit3 <- model$sample(data = list(M = occ_data$M,
-                                 J = occ_data$J,
-                                 Y = occ_data$y,
-                                 Elev = occ_data$elev,
-                                 Forest = occ_data$forest,
-                                 Wind = occ_data$wind),
-                     seed = 1,
-                     chains = 4, parallel_chains = 4,
-                     iter_sampling = 1000,
-                     iter_warmup = 1000,
-                     output_dir = "output_dir")
+csv_files <- Sys.glob(file.path(output_dir, "occ-*csv"))
+if (length(csv_files) > 0) {
+  fit3 <- as_cmdstan_fit(csv_files)
+} else {
+  model <- cmdstan_model(file.path("models", "occ.stan"))
+  fit3 <- model$sample(data = list(M = occ_data$M,
+                                   J = occ_data$J,
+                                   Y = occ_data$y,
+                                   Elev = occ_data$elev,
+                                   Forest = occ_data$forest,
+                                   Wind = occ_data$wind),
+                       seed = 1,
+                       chains = 4, parallel_chains = 4,
+                       iter_sampling = 1000,
+                       iter_warmup = 1000,
+                       output_dir = output_dir)
+}
 ```
 
-## Results
+## 結果
 
 ```{r occ_stan_summary}
 fit3$summary(c("beta", "Nocc"))
@@ -247,13 +255,14 @@ nmix_data <- AHMbook::simNmix(
 
 ## JAGS
 
-BUGS
+BUGSコード
+
 ```{r nmix_bugs_model}
 nmix_bugs <- file.path("models", "nmix_bugs.txt")
 cat(readLines(nmix_bugs), sep = "\n")
 ```
 
-## Fit
+## あてはめ
 
 ```{r nmix_jags_model, echo=TRUE, cache=TRUE, results='hide'}
 model <- jags.model(nmix_bugs,
@@ -265,14 +274,42 @@ model <- jags.model(nmix_bugs,
                     inits = list(N = apply(nmix_data$C, 1, max)),
                     n.chains = 3, n.adapt = 1000)
 update(model, n.iter = 1000)
-fit4 <- coda.samples(model, variable.names = c("beta", "Ntotal"),
+fit4 <- coda.samples(model, variable = c("beta", "N", "Ntotal"),
                      n.iter = 1000)
 ```
 
 ## 結果
 
 ```{r nmix_jags_summary, echo = TRUE}
-summary(fit4)$statistics
+summary(fit4)$statistics[c("Ntotal",
+                           "beta[1]", "beta[2]",
+                           "beta[3]", "beta[4]"), ]
+```
+
+---
+
+真値と推定値（事後平均と95%信用区間）
+
+```{r jags_plot_N, fig.width=9, fig.height=4.5}
+M <- nmix_data$nsites
+est <- summary(fit4)$statistics
+qnt <- summary(fit4)$quantile
+Nloc <- grep("N\\[[0-9]*\\]", rownames(est))
+Nmean <- est[Nloc, "Mean"]
+df <- data.frame(Site = rep(1:M, 2),
+                 N = c(nmix_data$N, Nmean),
+                 Value = rep(c("True", "Estimated"), each = M))
+ggplot(df) +
+  geom_segment(data = data.frame(Site = 1:nmix_data$nsite,
+                                 CI_low = qnt[Nloc, "2.5%"],
+                                 CI_upp = qnt[Nloc, "97.5%"]),
+               aes(x = Site, xend = Site, y = CI_low, yend = CI_upp),
+               colour = "red", alpha = 0.7) +          
+  geom_point(aes(x = Site, y = N, colour = Value),
+             size = 3, alpha = 0.7) +
+  labs(x = "Site", y = "N") +
+  theme_grey(base_family = "Helvetica", base_size = 12) +
+  theme(plot.background = element_rect(fill = "transparent", color = NA))
 ```
 
 ## NIMBLEモデル
@@ -317,7 +354,7 @@ fit5 <- nimbleMCMC(code, constants = const, data = data, inits = init,
 ```{r nmix_results}
 fit5$summary$all.chains[(M + 1):(M + 5), ]
 ```
-
+<!--
 ---
 
 ```{r nmix_plot_N, fig.width=9, fig.height=4.5}
@@ -335,6 +372,7 @@ ggplot(df) +
   labs(x = "Site", y = "N") +
   theme_grey(base_family = "Helvetica", base_size = 12)
 ```
+-->
 
 ## Stan model
 
@@ -352,37 +390,42 @@ cat(nmix_stan_model[10:12], sep = '\n')
 ---
 
 ```{r nmix_stan_model3}
-cat(nmix_stan_model[14:26], sep = '\n')
+cat(nmix_stan_model[14:25], sep = '\n')
 ```
 
 ---
 
 ```{r nmix_stan_model4}
-cat(nmix_stan_model[28:31], sep = '\n')
+cat(nmix_stan_model[27:30], sep = '\n')
 ```
 
 ---
 
 ```{r nmix_stan_model5}
-cat(nmix_stan_model[33:40], sep = '\n')
+cat(nmix_stan_model[32:38], sep = '\n')
 ```
 
 ## Stanによるあてはめ
 
 ```{r nmix_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
-model <- cmdstan_model(file.path("models", "nmix.stan"))
-fit6 <- model$sample(data = list(M = nmix_data$nsites,
-                                 J = nmix_data$nvisits,
-                                 Y = nmix_data$C,
-                                 K = 100 + max(nmix_data$C),
-                                 Xsite = nmix_data$site.cov[, 2],
-                                 Xsurvey = nmix_data$survey.cov),
-                     seed = 1, chains = 4, parallel_chains = 4,
-                     iter_sampling = 1000, iter_warmup = 1000,
-                     output_dir = "output_dir")
+csv_files <- Sys.glob(file.path(output_dir, "nmix-*csv"))
+if (length(csv_files) > 0) {
+  fit6 <- as_cmdstan_fit(csv_files)
+} else {
+  model <- cmdstan_model(file.path("models", "nmix.stan"))
+  fit6 <- model$sample(data = list(M = nmix_data$nsites,
+                                   J = nmix_data$nvisits,
+                                   Y = nmix_data$C,
+                                   K = 100 + max(nmix_data$C),
+                                   Xsite = nmix_data$site.cov[, 2],
+                                   Xsurvey = nmix_data$survey.cov),
+                       seed = 1, chains = 4, parallel_chains = 4,
+                       iter_sampling = 1000, iter_warmup = 1000,
+                       output_dir = "output_dir")
+}
 ```
 
-## Results
+## 結果
 
 ```{r nmix_stan_results}
 fit6$summary(c("Ntotal", "beta"))
