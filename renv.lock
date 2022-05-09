@@ -244,16 +244,17 @@
     },
     "cmdstanr": {
       "Package": "cmdstanr",
-      "Version": "0.5.1",
+      "Version": "0.5.2",
       "Source": "unknown",
-      "Hash": "3b92db64c23bb2eb609a4e257fe1106e",
+      "Hash": "cf82412f07ef8541ca40ed21593895e5",
       "Requirements": [
         "R6",
         "checkmate",
         "data.table",
         "jsonlite",
         "posterior",
-        "processx"
+        "processx",
+        "withr"
       ]
     },
     "coda": {
