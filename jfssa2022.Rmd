@@ -130,7 +130,7 @@ p1 + p2
 
 ## BUGSモデル
 
-```{r occ_model}
+```{r occ_model, comment=""}
 occ_bugs <- file.path("models", "occ_bug.txt")
 occ_bugs_model <- readLines(occ_bugs)
 cat(occ_bugs_model, sep = '\n')
@@ -179,26 +179,26 @@ fit2$summary$all.chains
 
 ## Stan model
 
-```{r occ_stan_model}
+```{r occ_stan_model, comment=""}
 occ_stan_model <- readLines(file.path("models", "occ.stan"))
 cat(occ_stan_model[1:8], sep = '\n')
 ```
 
 ---
 
-```{r occ_stan_model2}
+```{r occ_stan_model2, comment=""}
 cat(occ_stan_model[10:20], sep = '\n')
 ```
 
 ---
 
-```{r occ_stan_model3}
+```{r occ_stan_model3, comment=""}
 cat(occ_stan_model[22:32], sep = '\n')
 ```
 
 ---
 
-```{r occ_stan_model4}
+```{r occ_stan_model4, comment=""}
 cat(occ_stan_model[34:47], sep = '\n')
 ```
 
@@ -257,7 +257,7 @@ nmix_data <- AHMbook::simNmix(
 
 BUGSコード
 
-```{r nmix_bugs_model}
+```{r nmix_bugs_model, comment=""}
 nmix_bugs <- file.path("models", "nmix_bugs.txt")
 cat(readLines(nmix_bugs), sep = "\n")
 ```
@@ -354,10 +354,9 @@ fit5 <- nimbleMCMC(code, constants = const, data = data, inits = init,
 ```{r nmix_results}
 fit5$summary$all.chains[(M + 1):(M + 5), ]
 ```
-<!--
----
 
-```{r nmix_plot_N, fig.width=9, fig.height=4.5}
+
+```{r nmix_plot_N, include=FALSE, fig.width=9, fig.height=4.5}
 df <- data.frame(Site = rep(1:M, 2),
                  N = c(nmix_data$N, fit5$summary$all.chains[1:M, 1]),
                  Value = rep(c("True", "Estimated"), each = M))
@@ -372,36 +371,35 @@ ggplot(df) +
   labs(x = "Site", y = "N") +
   theme_grey(base_family = "Helvetica", base_size = 12)
 ```
--->
+
 
 ## Stan model
 
-```{r nmix_stan_model}
+```{r nmix_stan_model, comment=""}
 nmix_stan_model <- readLines(file.path("models", "nmix.stan"))
-cat(nmix_stan_model[1:8], sep = '\n')
+cat(nmix_stan_model[1:12], sep = '\n')
 ```
 
----
 
-```{r nmix_stan_model2}
+
+```{r nmix_stan_model2, include=FALSE}
 cat(nmix_stan_model[10:12], sep = '\n')
 ```
 
 ---
 
-```{r nmix_stan_model3}
+```{r nmix_stan_model3, comment=""}
 cat(nmix_stan_model[14:25], sep = '\n')
 ```
 
 ---
 
-```{r nmix_stan_model4}
-cat(nmix_stan_model[27:30], sep = '\n')
+```{r nmix_stan_model4, comment=""}
+cat(nmix_stan_model[27:38], sep = '\n')
 ```
 
----
 
-```{r nmix_stan_model5}
+```{r nmix_stan_model5, include=FALSE}
 cat(nmix_stan_model[32:38], sep = '\n')
 ```
 
