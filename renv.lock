@@ -245,7 +245,8 @@
     "cmdstanr": {
       "Package": "cmdstanr",
       "Version": "0.5.2",
-      "Source": "unknown",
+      "Source": "Repository",
+      "Repository": null,
       "Hash": "cf82412f07ef8541ca40ed21593895e5",
       "Requirements": [
         "R6",
