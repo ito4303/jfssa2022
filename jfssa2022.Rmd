@@ -389,18 +389,18 @@ cat(nmix_stan_model[10:12], sep = '\n')
 ---
 
 ```{r nmix_stan_model3, comment=""}
-cat(nmix_stan_model[14:25], sep = '\n')
+cat(nmix_stan_model[14:26], sep = '\n')
 ```
 
 ---
 
 ```{r nmix_stan_model4, comment=""}
-cat(nmix_stan_model[27:38], sep = '\n')
+cat(nmix_stan_model[28:39], sep = '\n')
 ```
 
 
 ```{r nmix_stan_model5, include=FALSE}
-cat(nmix_stan_model[32:38], sep = '\n')
+cat(nmix_stan_model[33:39], sep = '\n')
 ```
 
 ## Stanによるあてはめ
