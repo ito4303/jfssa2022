@@ -17,7 +17,8 @@ transformed parameters {
     real log_lambda = beta[1] + beta[2] * Xsite[m];
     vector[J] logit_p = beta[3] + beta[4] * Xsurvey[m]';
     int y_max = max(Y[m]);
-    lp[m, 1:y_max] = rep_row_vector(negative_infinity(), y_max);
+    for (k in 1:y_max)
+      lp[m, k] = negative_infinity();
     for (k in y_max:K)
       lp[m, k + 1] = poisson_log_lpmf(k | log_lambda)
                      + binomial_logit_lpmf(Y[m] | k, logit_p);
