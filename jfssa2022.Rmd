@@ -6,7 +6,8 @@ output:
   beamer_presentation:
     latex_engine: lualatex
     theme: metropolis
-    keep_tex: true
+    keep_tex: false
+    keep_md: false
     slide_level: 2
     includes:
       in_header: header.tex
@@ -42,6 +43,8 @@ if (!dir.exists(output_dir))
 
 ## 統計ソフトウェアによるあてはめ
 
+今回使用するソフトウェア
+
 - JAGS
 - NIMBLE
 - Stan
@@ -49,18 +52,21 @@ if (!dir.exists(output_dir))
 ## JAGS
 
 - https://mcmc-jags.sourceforge.io/
-- BUGS言語
-
+- Rパッケージ
+- モデル記述にBUGS言語を使用
 
 ## NIMBLE
 
 - https://r-nimble.org
+- Rパッケージ
 - BUGSを拡張したモデル記述言語
 - モデルコードをC++に変換後、コンパイルして実行
 
 ## Stan
 
 - https://mc-stan.org/
+- スタンドアロンのプログラム
+    - Rからは、Rstanまたはcmdstanrパッケージから利用可能
 - Stan独自のプログラミング言語
 - モデルコードをC++に変換後、コンパイルして実行
 - 離散パラメータの推定はできない
@@ -153,12 +159,14 @@ fit1 <- coda.samples(model, variable = c("beta", "Nocc"),
 
 ## 結果
 
-```{r occ_jags_summary}
+```{r occ_jags_summary, echo=TRUE, comment="", prompt=TRUE}
 summary(fit1)$statistics
 ```
 
 
 ## NIMBLEによるあてはめ
+
+同じBUGSコードを使用
 
 ```{r occ_fit, cache=TRUE, echo=TRUE, message=FALSE, results='hide'}
 data <- list(M = occ_data$M, J = occ_data$J,
@@ -179,6 +187,8 @@ fit2$summary$all.chains
 
 ## Stan model
 
+dataブロック
+
 ```{r occ_stan_model, comment=""}
 occ_stan_model <- readLines(file.path("models", "occ.stan"))
 cat(occ_stan_model[1:8], sep = '\n')
@@ -186,11 +196,15 @@ cat(occ_stan_model[1:8], sep = '\n')
 
 ---
 
+parametersブロックとtranformed parametersブロック
+
 ```{r occ_stan_model2, comment=""}
 cat(occ_stan_model[10:20], sep = '\n')
 ```
 
 ---
+
+modelブロック
 
 ```{r occ_stan_model3, comment=""}
 cat(occ_stan_model[22:32], sep = '\n')
@@ -198,13 +212,15 @@ cat(occ_stan_model[22:32], sep = '\n')
 
 ---
 
+generated quantitiesブロック
+
 ```{r occ_stan_model4, comment=""}
 cat(occ_stan_model[34:47], sep = '\n')
 ```
 
 ## Stanによるあてはめ
 
-```{r occ_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
+```{r occ_stan, cache=TRUE, messages=FALSE, results='hide'}
 csv_files <- Sys.glob(file.path(output_dir, "occ-*csv"))
 if (length(csv_files) > 0) {
   fit3 <- as_cmdstan_fit(csv_files)
@@ -224,9 +240,27 @@ if (length(csv_files) > 0) {
 }
 ```
 
+<!-- chunk option echo=m:n does not work -->
+
+```
+model <- cmdstan_model(file.path("models", "occ.stan"))
+fit3 <- model$sample(data = list(M = occ_data$M,
+                                 J = occ_data$J,
+                                 Y = occ_data$y,
+                                 Elev = occ_data$elev,
+                                 Forest = occ_data$forest,
+                                 Wind = occ_data$wind),
+                     seed = 1,
+                     chains = 4, parallel_chains = 4,
+                     iter_sampling = 1000,
+                     iter_warmup = 1000,
+                     output_dir = output_dir)
+```
+
+
 ## 結果
 
-```{r occ_stan_summary}
+```{r occ_stan_summary, echo=TRUE, comment="", prompt=TRUE}
 fit3$summary(c("beta", "Nocc"))
 ```
 
@@ -280,7 +314,7 @@ fit4 <- coda.samples(model, variable = c("beta", "N", "Ntotal"),
 
 ## 結果
 
-```{r nmix_jags_summary, echo = TRUE}
+```{r nmix_jags_summary, echo=TRUE, comment="", prompt=TRUE}
 summary(fit4)$statistics[c("Ntotal",
                            "beta[1]", "beta[2]",
                            "beta[3]", "beta[4]"), ]
@@ -351,7 +385,7 @@ fit5 <- nimbleMCMC(code, constants = const, data = data, inits = init,
 
 ## 結果
 
-```{r nmix_results}
+```{r nmix_results, echo=TRUE, comment="", prompt=TRUE}
 fit5$summary$all.chains[(M + 1):(M + 5), ]
 ```
 
@@ -405,7 +439,7 @@ cat(nmix_stan_model[33:39], sep = '\n')
 
 ## Stanによるあてはめ
 
-```{r nmix_stan, echo=TRUE, cache=TRUE, messages=FALSE, results='hide'}
+```{r nmix_stan, cache=TRUE, messages=FALSE, results='hide'}
 csv_files <- Sys.glob(file.path(output_dir, "nmix-*csv"))
 if (length(csv_files) > 0) {
   fit6 <- as_cmdstan_fit(csv_files)
@@ -423,9 +457,24 @@ if (length(csv_files) > 0) {
 }
 ```
 
+<!-- chunk option echo=m:n does not work -->
+
+```
+model <- cmdstan_model(file.path("models", "nmix.stan"))
+fit6 <- model$sample(data = list(M = nmix_data$nsites,
+                                 J = nmix_data$nvisits,
+                                 Y = nmix_data$C,
+                                 K = 100 + max(nmix_data$C),
+                                 Xsite = nmix_data$site.cov[, 2],
+                                 Xsurvey = nmix_data$survey.cov),
+                     seed = 1, chains = 4, parallel_chains = 4,
+                     iter_sampling = 1000, iter_warmup = 1000,
+                     output_dir = "output_dir")
+```
+
 ## 結果
 
-```{r nmix_stan_results}
+```{r nmix_stan_results, echo=TRUE, comment="", prompt=TRUE}
 fit6$summary(c("Ntotal", "beta"))
 ```
 
