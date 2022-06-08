@@ -185,9 +185,28 @@ fit2 <- nimbleMCMC(model = model, monitors = c("beta", "Nocc"),
 fit2$summary$all.chains
 ```
 
-## Stan model
+## Stan
 
-dataブロック
+zを消去
+
+各サイトについて
+
+$Y_{j}$がすべて0のとき
+
+$$
+L(Y_{j} \mid \psi, p_{j}) =
+\mathrm{Bern}(0 \mid \psi) + \mathrm{Bern}(1 \mid \psi)\prod_{j=1}^{J}\mathrm{Bern}(0 \mid p_{j}) 
+$$
+
+$Y_{j}$の少なくとも1つが1のとき
+
+$$
+L(Y_{j} \mid \psi, p_{j}) =
+\mathrm{Bern}(1 \mid \psi)\prod_{j=1}^{J}\mathrm{Bern}(Y_{j} \mid p_{j})
+$$
+
+
+## Stan model
 
 ```{r occ_stan_model, comment=""}
 occ_stan_model <- readLines(file.path("models", "occ.stan"))
@@ -196,15 +215,11 @@ cat(occ_stan_model[1:8], sep = '\n')
 
 ---
 
-parametersブロックとtranformed parametersブロック
-
 ```{r occ_stan_model2, comment=""}
 cat(occ_stan_model[10:20], sep = '\n')
 ```
 
 ---
-
-modelブロック
 
 ```{r occ_stan_model3, comment=""}
 cat(occ_stan_model[22:32], sep = '\n')
@@ -212,55 +227,30 @@ cat(occ_stan_model[22:32], sep = '\n')
 
 ---
 
-generated quantitiesブロック
-
 ```{r occ_stan_model4, comment=""}
 cat(occ_stan_model[34:47], sep = '\n')
 ```
 
 ## Stanによるあてはめ
 
-```{r occ_stan, cache=TRUE, messages=FALSE, results='hide'}
+```{r occ_stan, echo=FALSE, cache=TRUE, messages=FALSE, results='hide'}
 csv_files <- Sys.glob(file.path(output_dir, "occ-*csv"))
+occ_stan_fit_R <- "occ_stan_fit.R"
 if (length(csv_files) > 0) {
   fit3 <- as_cmdstan_fit(csv_files)
 } else {
-  model <- cmdstan_model(file.path("models", "occ.stan"))
-  fit3 <- model$sample(data = list(M = occ_data$M,
-                                   J = occ_data$J,
-                                   Y = occ_data$y,
-                                   Elev = occ_data$elev,
-                                   Forest = occ_data$forest,
-                                   Wind = occ_data$wind),
-                       seed = 1,
-                       chains = 4, parallel_chains = 4,
-                       iter_sampling = 1000,
-                       iter_warmup = 1000,
-                       output_dir = output_dir)
+  source(occ_stan_fit_R)
 }
 ```
 
-<!-- chunk option echo=m:n does not work -->
-
+```{r occ_stan_fit_code, comment=""}
+occ_stan_fit <- readLines(occ_stan_fit_R)
+cat(occ_stan_fit, sep = '\n')
 ```
-model <- cmdstan_model(file.path("models", "occ.stan"))
-fit3 <- model$sample(data = list(M = occ_data$M,
-                                 J = occ_data$J,
-                                 Y = occ_data$y,
-                                 Elev = occ_data$elev,
-                                 Forest = occ_data$forest,
-                                 Wind = occ_data$wind),
-                     seed = 1,
-                     chains = 4, parallel_chains = 4,
-                     iter_sampling = 1000,
-                     iter_warmup = 1000,
-                     output_dir = output_dir)
-```
-
 
 ## 結果
 
-```{r occ_stan_summary, echo=TRUE, comment="", prompt=TRUE}
+```{r occ_stan_summary}
 fit3$summary(c("beta", "Nocc"))
 ```
 
@@ -407,6 +397,17 @@ ggplot(df) +
 ```
 
 
+## Stan
+
+$N$を消去
+
+各サイトについて
+
+$$
+L(Y_{j} \mid \lambda, p_{j}) = \sum_{k=0}^\infty \left(\mathrm{Pois}(k \mid \lambda) \prod_{j=1}^{J}\mathrm{Binom}(Y_{j} \mid k, p_{j})\right)
+$$
+
+
 ## Stan model
 
 ```{r nmix_stan_model, comment=""}
@@ -439,42 +440,24 @@ cat(nmix_stan_model[33:39], sep = '\n')
 
 ## Stanによるあてはめ
 
-```{r nmix_stan, cache=TRUE, messages=FALSE, results='hide'}
+```{r nmix_stan, echo=FALSE, cache=TRUE, messages=FALSE, results='hide'}
 csv_files <- Sys.glob(file.path(output_dir, "nmix-*csv"))
+nmix_stan_fit_R <- "nmix_stan_fit.R"
 if (length(csv_files) > 0) {
   fit6 <- as_cmdstan_fit(csv_files)
 } else {
-  model <- cmdstan_model(file.path("models", "nmix.stan"))
-  fit6 <- model$sample(data = list(M = nmix_data$nsites,
-                                   J = nmix_data$nvisits,
-                                   Y = nmix_data$C,
-                                   K = 100 + max(nmix_data$C),
-                                   Xsite = nmix_data$site.cov[, 2],
-                                   Xsurvey = nmix_data$survey.cov),
-                       seed = 1, chains = 4, parallel_chains = 4,
-                       iter_sampling = 1000, iter_warmup = 1000,
-                       output_dir = "output_dir")
+  source(nmix_stan_fit_R)
 }
 ```
 
-<!-- chunk option echo=m:n does not work -->
-
-```
-model <- cmdstan_model(file.path("models", "nmix.stan"))
-fit6 <- model$sample(data = list(M = nmix_data$nsites,
-                                 J = nmix_data$nvisits,
-                                 Y = nmix_data$C,
-                                 K = 100 + max(nmix_data$C),
-                                 Xsite = nmix_data$site.cov[, 2],
-                                 Xsurvey = nmix_data$survey.cov),
-                     seed = 1, chains = 4, parallel_chains = 4,
-                     iter_sampling = 1000, iter_warmup = 1000,
-                     output_dir = "output_dir")
+```{r nmix_stan_fit_code, comment=""}
+nmix_stan_fit <- readLines(nmix_stan_fit_R)
+cat(nmix_stan_fit, sep = '\n')
 ```
 
 ## 結果
 
-```{r nmix_stan_results, echo=TRUE, comment="", prompt=TRUE}
+```{r nmix_stan_results}
 fit6$summary(c("Ntotal", "beta"))
 ```
 
