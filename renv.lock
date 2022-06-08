@@ -105,10 +105,10 @@
     },
     "RcppArmadillo": {
       "Package": "RcppArmadillo",
-      "Version": "0.11.0.0.0",
+      "Version": "0.11.1.1.0",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "704ac7bb6a49df5a9a2b014793fcc6cb",
+      "Hash": "631929e53829901562986c504f86104b",
       "Requirements": [
         "Rcpp"
       ]
@@ -245,8 +245,7 @@
     "cmdstanr": {
       "Package": "cmdstanr",
       "Version": "0.5.2",
-      "Source": "Repository",
-      "Repository": null,
+      "Source": "unknown",
       "Hash": "cf82412f07ef8541ca40ed21593895e5",
       "Requirements": [
         "R6",
@@ -652,10 +651,10 @@
     },
     "nloptr": {
       "Package": "nloptr",
-      "Version": "2.0.0",
+      "Version": "2.0.3",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "6e45c045fea34a9d0d1ceaa6fb7c4e91",
+      "Hash": "277c67a08f358f42b6a77826e4492f79",
       "Requirements": [
         "testthat"
       ]
@@ -1071,10 +1070,10 @@
     },
     "tinytex": {
       "Package": "tinytex",
-      "Version": "0.38",
+      "Version": "0.39",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "759d047596ac173433985deddf313450",
+      "Hash": "29f67ab15405b390b90e56ff22198ead",
       "Requirements": [
         "xfun"
       ]
@@ -1091,10 +1090,10 @@
     },
     "unmarked": {
       "Package": "unmarked",
-      "Version": "1.2.3",
+      "Version": "1.2.5",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "62c32501b1d6705216613aeb2a315219",
+      "Hash": "248d941073b06c4b23a8d88e8c4a7c05",
       "Requirements": [
         "MASS",
         "Matrix",
@@ -1170,10 +1169,10 @@
     },
     "xfun": {
       "Package": "xfun",
-      "Version": "0.30",
+      "Version": "0.31",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "e83f48136b041845e50a6658feffb197",
+      "Hash": "a318c6f752b8dcfe9fb74d897418ab2b",
       "Requirements": []
     },
     "yaml": {
