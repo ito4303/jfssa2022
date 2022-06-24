@@ -27,6 +27,10 @@ set.seed(20220904)
 output_dir <- "output_dir"
 if (!dir.exists(output_dir))
   dir.create(output_dir)
+
+repos <- c(CRAN = "https://cloud.r-project.org",
+           cmdstanr = "https://mc-stan.org/r-packages/")
+options(repos = repos)
 ```
 
 ## 本日の内容
