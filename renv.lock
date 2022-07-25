@@ -1,6 +1,6 @@
 {
   "R": {
-    "Version": "4.2.0",
+    "Version": "4.2.1",
     "Repositories": [
       {
         "Name": "CRAN",
@@ -48,10 +48,10 @@
     },
     "MASS": {
       "Package": "MASS",
-      "Version": "7.3-58",
+      "Version": "7.3-57",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "4bf2c61e656bbc238634c798c208d386",
+      "Hash": "71476c1d88d1ebdf31580e5a257d5d31",
       "Requirements": []
     },
     "Matrix": {
@@ -856,10 +856,10 @@
     },
     "renv": {
       "Package": "renv",
-      "Version": "0.15.4",
+      "Version": "0.15.5",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c1078316e1d4f70275fc1ea60c0bc431",
+      "Hash": "6a38294e7d12f5d8e656b08c5bd8ae34",
       "Requirements": []
     },
     "rjags": {
@@ -1042,10 +1042,10 @@
     },
     "terra": {
       "Package": "terra",
-      "Version": "1.5-34",
+      "Version": "1.5-21",
       "Source": "Repository",
       "Repository": "CRAN",
-      "Hash": "c3401c4598d3c2d6158e10c966d70cbd",
+      "Hash": "a713f0d9f9a2b68af112a991adbfe5d5",
       "Requirements": [
         "Rcpp"
       ]
