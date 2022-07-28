@@ -23,7 +23,6 @@ library(cmdstanr)
 library(coda)
 library(ggplot2)
 library(patchwork)
-set.seed(20220904)
 output_dir <- "output_dir"
 if (!dir.exists(output_dir))
   dir.create(output_dir)
@@ -42,8 +41,9 @@ options(repos = repos)
 ## 階層モデル
 
 - 潜在状態
+    - 観測できないシステム
 - 観測過程
-
+    - 潜在状態を観測（観測誤差を含む）
 
 ## 統計ソフトウェアによるあてはめ
 
@@ -53,15 +53,19 @@ options(repos = repos)
 - NIMBLE
 - Stan
 
+いずれも、MCMCによるベイズ推定が可能
+
+
 ## JAGS
 
 - https://mcmc-jags.sourceforge.io/
-- Rパッケージ
+- スタンドアロンのプログラム
+    - Rからは、rjagsなどのパッケージから利用可能
 - モデル記述にBUGS言語を使用
 
 ## NIMBLE
 
-- https://r-nimble.org
+- https://r-nimble.org/
 - Rパッケージ
 - BUGSを拡張したモデル記述言語
 - モデルコードをC++に変換後、コンパイルして実行
@@ -88,7 +92,8 @@ options(repos = repos)
 
 ## 模擬データの作成
 
-```{r simOcc, echo = TRUE}
+```{r simOcc, echo = -1}
+set.seed(20220904)
 occ_data <- AHMbook::simOcc(
   M = 200,                # サイト数
   J = 3,                  # 調査回数
@@ -191,19 +196,15 @@ fit2$summary$all.chains
 
 ## Stan
 
-zを消去
+離散パラメータの$z$を消去する
 
-各サイトについて
-
-$Y_{j}$がすべて0のとき
-
+- 各サイトについて
+    - $Y_{j}$がすべて0のとき
 $$
 L(Y_{j} \mid \psi, p_{j}) =
 \mathrm{Bern}(0 \mid \psi) + \mathrm{Bern}(1 \mid \psi)\prod_{j=1}^{J}\mathrm{Bern}(0 \mid p_{j}) 
 $$
-
-$Y_{j}$の少なくとも1つが1のとき
-
+    - $Y_{j}$の少なくとも1つが1のとき
 $$
 L(Y_{j} \mid \psi, p_{j}) =
 \mathrm{Bern}(1 \mid \psi)\prod_{j=1}^{J}\mathrm{Bern}(Y_{j} \mid p_{j})
@@ -263,14 +264,15 @@ fit3$summary(c("beta", "Nocc"))
 
 - 潜在状態: 真の個体数$N$
     - $N \sim \mathrm{Poisson}(\lambda)$
-- 観測過程: そのうち$Y$個体を発見する。
-    - $Y \sim \mathrm{Binomial}(N, p)$
+- 観測過程: $i$回目の観測では、そのうち$Y_i$個体を、発見確率$p$で発見する
+    - $Y_i \sim \mathrm{Binomial}(N, p)$
 
-偽陽性の誤差はないとする。
+偽陽性の誤差はないとする
 
-## 模擬データ
+## 模擬データの作成
 
-```{r simNmix, echo = TRUE}
+```{r simNmix, echo = -1}
+set.seed(20220905)
 nmix_data <- AHMbook::simNmix(
   nsites = 267,        # サイト数
   nvisits = 3,         # 各サイトでの観察回数
@@ -279,6 +281,20 @@ nmix_data <- AHMbook::simNmix(
   beta2.lam = 1,       # 個体数についての共変量2の係数
   beta.p.survey = -2,  # 発見確率についての観測共変量の係数
   show.plots = FALSE, verbose = FALSE)
+```
+
+## データの確認
+
+真の個体数($N$)
+
+```{r nmix_data1,  echo = TRUE, prompt=TRUE, comment=""}
+nmix_data$Ntotal
+```
+
+各サイトでの最大観測数の合計
+
+```{r nmix_data2,  echo = TRUE, prompt=TRUE, comment=""}
+sum(apply(nmix_data$C, 1, max))
 ```
 
 ## JAGS
@@ -403,10 +419,9 @@ ggplot(df) +
 
 ## Stan
 
-$N$を消去
+離散パラメータの$N$を消去
 
-各サイトについて
-
+- 各サイトについて
 $$
 L(Y_{j} \mid \lambda, p_{j}) = \sum_{k=0}^\infty \left(\mathrm{Pois}(k \mid \lambda) \prod_{j=1}^{J}\mathrm{Binom}(Y_{j} \mid k, p_{j})\right)
 $$
@@ -468,5 +483,11 @@ fit6$summary(c("Ntotal", "beta"))
 
 # おわりに
 
-- 潜在状態と観測過程を明示的にモデリングする。
+- 階層モデリング
+    - 潜在状態と観測過程を明示的にモデリングする
+        - 潜在状態のばらつきと、観測誤差を分離
+- ソフトウェアの利用
+    - JAGS, NIMBLE, Stan
+    - MCMCによるベイズ推定
+    - Stanでは、離散パラメータの消去に一工夫がいる
 
