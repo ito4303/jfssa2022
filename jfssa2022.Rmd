@@ -55,6 +55,8 @@ options(repos = repos)
 
 いずれも、MCMCによるベイズ推定が可能
 
+このほか、Rのunmarkedパッケージでは最尤推定が可能
+
 
 ## JAGS
 
@@ -69,6 +71,7 @@ options(repos = repos)
 - Rパッケージ
 - BUGSを拡張したモデル記述言語
 - モデルコードをC++に変換後、コンパイルして実行
+- 生態学に特化したnimbleEcologyパッケージもあり
 
 ## Stan
 
