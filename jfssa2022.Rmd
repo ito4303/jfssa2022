@@ -510,6 +510,15 @@ cat(nmix_stan_fit, sep = '\n')
 fit6$summary(c("Ntotal", "beta"))
 ```
 
+## StanでのN混合モデルの高速化
+
+- 連鎖内での並列化
+  - `reduce_sum`の使用
+    - https://mc-stan.org/users/documentation/case-studies/reduce_sum_tutorial.html
+- アルゴリズムの見直し
+  - 多変量ポアソン分布によるあてはめ
+    - 2変量ポアソン分布の実装例: https://github.com/stan-dev/example-models/blob/master/BPA/Ch.12/Nmix1.stan
+
 
 # おわりに
 
@@ -520,4 +529,10 @@ fit6$summary(c("Ntotal", "beta"))
     - JAGS, NIMBLE, Stan
     - MCMCによるベイズ推定
     - Stanでは、離散パラメータの消去に一工夫がいる
+
+## 今回の資料
+
+今回の発表に使用したコードはGithubで公開しています。
+
+https://github.com/ito4303/jfssa2022
 

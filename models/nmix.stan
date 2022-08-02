@@ -1,10 +1,10 @@
 data {
-  int<lower = 0> M;
-  int<lower = 0> J;
-  array[M, J] int<lower = 0> Y;
+  int<lower=0> M;
+  int<lower=0> J;
+  array[M, J] int<lower=0> Y;
   vector[M] Xsite;
   matrix[M, J] Xsurvey;
-  int<lower = 0> K;  // upper limit of N for calculation
+  int<lower=0> K;  // upper limit of N for calculation
 }
 
 parameters {
