@@ -1,10 +1,10 @@
 data {
-  int<lower = 0> M;
-  int<lower = 0> J;
-  array[M, J] int<lower = 0> Y;
+  int<lower=0> M;
+  int<lower=0> J;
+  array[M, J] int<lower=0> Y;
   vector[M] Xsite;
   matrix[M, J] Xsurvey;
-  int<lower = 0> K;  // upper limit of N for calculation
+  int<lower=0> K;  // upper limit of N for calculation
 }
 
 parameters {
@@ -12,7 +12,7 @@ parameters {
 }
 
 transformed parameters {
-  matrix[M, K + 1] lp;
+  matrix[M, K + 1] lp;  // (k - 1) = 0, 1, 2,..., K
   for (m in 1:M) {
     real log_lambda = beta[1] + beta[2] * Xsite[m];
     vector[J] logit_p = beta[3] + beta[4] * Xsurvey[m]';
