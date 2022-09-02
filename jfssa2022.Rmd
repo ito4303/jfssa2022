@@ -108,9 +108,9 @@ occ_data <- AHMbook::simOcc(
   beta3 = 0,              # 占有確率に対する交互作用の係数
   mean.detection = 0.3,   # 共変量が0のときの平均発見確率
   time.effects = c(0, 0), # 時間効果
-  alpha1 = -1,            # 占有確率に対する標高の係数
-  alpha2 = -3,            # 占有確率に対する風速の係数
-  alpha3 = 0,             # 占有確率に対する交互作用の係数
+  alpha1 = -1,            # 発見確率に対する標高の係数
+  alpha2 = -3,            # 発見確率に対する風速の係数
+  alpha3 = 0,             # 発見確率に対する交互作用の係数
   sd.lp = 0,              # サイトの変量効果
   b = 0,                  # 行動反応
   show.plot = FALSE)
