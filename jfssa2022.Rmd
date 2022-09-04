@@ -222,12 +222,12 @@ fit2$summary$all.chains
 - 各サイトについて
     - $Y_{j}$がすべて0のとき
 $$
-L(Y \mid \psi, p_{j}) =
+L(\psi, \symbf{p} \mid \symbf{Y}) =
 \mathrm{Bern}(0 \mid \psi) + \mathrm{Bern}(1 \mid \psi)\prod_{j=1}^{J}\mathrm{Bern}(0 \mid p_{j}) 
 $$
     - $Y_{j}$の少なくとも1つが1のとき
 $$
-L(Y \mid \psi, p_{j}) =
+L(\psi, \symbf{p} \mid \symbf{Y}) =
 \mathrm{Bern}(1 \mid \psi)\prod_{j=1}^{J}\mathrm{Bern}(Y_{j} \mid p_{j})
 $$
 
@@ -453,7 +453,7 @@ ggplot(df) +
 
 - 各サイトについて
 $$
-L(Y \mid \lambda, p_{j}) = \sum_{k=0}^\infty \left(\mathrm{Pois}(k \mid \lambda) \prod_{j=1}^{J}\mathrm{Binom}(Y_{j} \mid k, p_{j})\right)
+L(\lambda, \symbf{p} \mid \symbf{Y}) = \sum_{k=0}^\infty \left(\mathrm{Pois}(k \mid \lambda) \prod_{j=1}^{J}\mathrm{Binom}(Y_{j} \mid k, p_{j})\right)
 $$
 
 
