@@ -78,7 +78,7 @@ options(repos = repos)
 - https://mc-stan.org/
 - スタンドアロンのプログラム
     - Rからは、Rstanまたはcmdstanrパッケージから利用可能
-- Stan独自のプログラミング言語
+- Stan独自のモデル記述言語
 - モデルコードをC++に変換後、コンパイルして実行
 - 離散パラメータの推定はできない
 
