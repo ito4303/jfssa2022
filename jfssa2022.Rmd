@@ -453,7 +453,7 @@ ggplot(df) +
 
 - 各サイトについて
 $$
-L(\lambda, \symbf{p} \mid \symbf{Y}) = \sum_{k=0}^\infty \left(\mathrm{Pois}(k \mid \lambda) \prod_{j=1}^{J}\mathrm{Binom}(Y_{j} \mid k, p_{j})\right)
+L(\lambda, \symbf{p} \mid \symbf{Y}) = \sum_{k=\mathrm{max}(\symbf{Y})}^\infty \left(\mathrm{Pois}(k \mid \lambda) \prod_{j=1}^{J}\mathrm{Binom}(Y_{j} \mid k, p_{j})\right)
 $$
 
 
